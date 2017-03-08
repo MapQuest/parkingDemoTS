@@ -1,0 +1,57 @@
+
+#map {
+    top:65px;
+    left:5px;
+    width: calc(100vw - 15px);
+    height: calc(100vh - 70px);
+    border: 1px black solid;
+
+}
+
+#menubar {
+
+    background-color: red;
+    position: absolute;
+    bottom: 5px;
+    width: calc(100vw - 15px);
+    height: 55px;
+    border: 1px black solid;
+
+}
+
+#searchbar {
+    position: absolute;
+    left: 60px;
+    top: 20px;
+    height: 50px;
+    width: 500px;
+    border: 1px black solid;
+    -webkit-border-radius:5px;
+    -moz-border-radius:5px;
+    border-radius:5px;
+    background-color: white;
+    padding:10px;
+}
+
+.demobutton {
+
+    height: 45px;
+    margin: 5px;
+    border: 2px solid black;
+    border-radius: 8px;
+}
+
+button:active {
+    border: none;
+}
+
+button {
+    outline: none;
+}
+
+.lineConnect {
+    fill: none;
+    stroke: blue;
+    opacity: 1;
+}
+
