@@ -10,6 +10,8 @@ var targetPoiLatLng = null;
 var smstoken = null;
 
 var myLocation = null;
+var isAnimatingDrive = false;
+var routeEnd = null;
 
 $( document ).ready(function() {
 
@@ -36,6 +38,34 @@ $( document ).ready(function() {
         'Traffic Flow': MQ.trafficLayer({layers: ['flow']}),
         'Traffic Incidents': MQ.trafficLayer({layers: ['incidents']})
     }).addTo(map);
+
+
+    map.on('zoomend', function(e) {
+        console.log("zoom-->:" + map.getZoom());
+        if (isAnimatingDrive)
+        {
+
+            animateDriving();
+        }
+    });
+
+    /*
+    map.on('moveend', function(e) {
+        if (isAnimatingDrive)
+        {
+            animateDriving();
+        }
+    });
+    */
+
+    /*
+    map.on('viewreset', function() {
+        if (isAnimatingDrive)
+        {
+            animateDriving();
+        }
+    })
+    */
     
 
     //create svg layer to do some additional animation and drawing on the MQ leaflet map
@@ -177,6 +207,7 @@ $( document ).ready(function() {
                 });
 
                 marker = L.marker(location.latLng, {icon: custom_icon}).addTo(map);
+                routeEnd = location.latLng;
 
                 return marker;
             }
@@ -211,12 +242,13 @@ $( document ).ready(function() {
 
     var createRoutePath = function() {
 
-        var pathPointArray = new Array();
+        var routePathArray = new Array();
         $.each(mqRoute.routeData.legs[0].maneuvers, function (index, maneuver)
         {
-            console.log(maneuver.startPoint);
+            routePathArray.push(maneuver.startPoint);
         });
 
+        return routePathArray;
 
     }
 
@@ -351,6 +383,67 @@ $( document ).ready(function() {
 
     }
 
+    var animateDriving = function() {
+        isAnimatingDrive = true;
+
+        var elem = document.getElementById("driveIco");
+        if (elem) elem.parentNode.removeChild(elem);
+
+
+
+        //build the route
+        var routePath = new Array();
+        routePath = createRoutePath();
+
+        //convert latLng to X,Y points
+        var coordPointArray = new Array();
+        $.each(routePath, function(idx, latlng){
+            var coordinate = map.latLngToLayerPoint(new L.LatLng(latlng.lat, latlng.lng));
+            console.log(coordinate);
+
+            var mypoint = new Array();
+            mypoint.push(coordinate.x);
+            mypoint.push(coordinate.y);
+
+            coordPointArray.push(mypoint);
+        });
+
+
+
+        var svganim = d3.select('svg.leaflet-zoom-animated');
+        var zoomlevel = map.getZoom();
+
+
+        var circle = svganim.append("circle")
+            .attr("r", 20 - ((20 - zoomlevel) * 2) )
+            .attr("cx", 400)
+            .attr("cy", 400)
+            .attr("id","driveIco")
+            .style("fill", "#0000ff");
+
+        document.addEventListener('animationEnd', function(e){
+            console.log(" --- wooot ---");
+            console.log(e);
+            isAnimatingDrive = false;
+
+            //remove the circle
+            var elem = document.getElementById("driveIco");
+            if (elem) elem.parentNode.removeChild(elem);
+
+            //move my current position to here
+            myLocation.setLatLng(routeEnd); // move this to the end of the route
+
+            alert("Here we send SMS message about your spot");
+
+        })
+
+        var animation = new PathAnimation(circle);
+
+
+
+        animation.start(coordPointArray, 13000, animation.tween(d3.ease("linear")));
+    };
+
     //binding actions
     $('#btn-route').on('click', function() {
         if ($("#txt-search-address").val().length > 0) {
@@ -365,8 +458,10 @@ $( document ).ready(function() {
     });
 
 
-    $('#btn-poi').on('click', function() {
-        loadPOIs();
+    $('#btn-search').on('click', function() {
+        if ($('#txt-search-address').val() == "restaurants" || $('#txt-search-address').val() == "Restaurants") {
+            loadPOIs();
+        }
     });
 
     $('#btn-sms').on('click', function() {
@@ -386,6 +481,10 @@ $( document ).ready(function() {
         })
 
     });
+
+    $('#btn-drive').on('click', function() {
+        animateDriving();
+    })
 
     $('#btn-send-sms').on('click', function() {
 
@@ -409,7 +508,7 @@ $( document ).ready(function() {
                 console.log(data);
             })
         }
-    })
+    });
 
 
 })

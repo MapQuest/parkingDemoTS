@@ -77,8 +77,22 @@ var PathAnimation = (function () {
         return tween(d, i, a)(_this._progress + (1 - _this._progress) * time)[1];
       };
     }).each("end", function () {
+      /*
       _this._progress = 0.0;
       _this._animate(tween);
+      */
+      var event = new CustomEvent(
+          "animationEnd",
+          {
+            detail: {
+              message: "animation ended"
+            },
+            bubbles: true,
+            cancelable: true
+          }
+      );
+
+      document.dispatchEvent(event);
     });
   };
 

@@ -1,9 +1,18 @@
 
+#top-branding {
+    position: absolute;
+    top: 5px;
+    left: 15px;
+    width: calc(100vw - 30px);
+    height: 50px;
+
+}
+
 #map {
     top:65px;
-    left:5px;
-    width: calc(100vw - 15px);
-    height: calc(100vh - 70px);
+    left:10px;
+    width: calc(100vw - 20px);
+    height: calc(100vh - 125px);
     border: 1px black solid;
 
 }
