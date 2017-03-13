@@ -2,6 +2,7 @@ var mqRoute = null;
 
 
 var parkingSpotArray = new Array();
+var parkingRemoteData = new Array();
 var poiArray = new Array();
 var poiFeatureGroup = null;
 
@@ -129,11 +130,25 @@ $( document ).ready(function() {
     L.geoJson(howardPark, {
         pointToLayer: function (feature, latlng) {
 
+            
             var rndNumber = getRandomIntInclusive(0,10);
             if (rndNumber == 2 || rndNumber == 4 || rndNumber == 8)
                 feature.properties.occupied = true;
             else
                 feature.properties.occupied = false;
+
+            //if the POST_ID is not set, let's create one
+            if (feature.properties.POST_ID == null)
+            {
+                var num1 = getRandomIntInclusive(100,999);
+                var num2 = getRandomIntInclusive(10000,99999);
+
+                feature.properties.POST_ID = num1 + " - " + num2;
+            }
+                
+            {
+                console.log("need post id");
+            }
 
             var spot = L.circle(latlng, feature.properties.occupied ? 2 : 1, feature.properties.occupied ? occupiedOption : unoccupiedOption);
             //add this to an array for animation
@@ -294,6 +309,7 @@ $( document ).ready(function() {
                 $.each(data.searchResults, function( idx, poi){
                     //console.log(poi.fields);
 
+                    
 
                     boundingArray.push(poi.fields.mqap_geography.latLng);
 
@@ -433,7 +449,26 @@ $( document ).ready(function() {
             //move my current position to here
             myLocation.setLatLng(routeEnd); // move this to the end of the route
 
-            alert("Here we send SMS message about your spot");
+            //alert("Here we send SMS message about your spot");
+
+            var sendTo = $('#txt-cellphone').val();
+
+            $.ajax({
+                method: 'POST',
+                url: 'https://thingspace.verizon.com/api/messaging/v1/sms',
+                contentType: 'application/json; charset=UTF-8',
+                headers: {"Authorization": "Bearer " + smstoken},
+                data: JSON.stringify({
+                    "recipient": sendTo,
+                    "senderAddress": "900040002014",
+                    "content": "You have arrvied at your parking spot - you have 2 hours" ,
+                    "transactionID": "vz" + Date.now(),
+                    "deliveryReport": true
+                })
+            }).done (function(data){
+                console.log(data);
+            })
+
 
         })
 
@@ -441,7 +476,7 @@ $( document ).ready(function() {
 
 
 
-        animation.start(coordPointArray, 13000, animation.tween(d3.ease("linear")));
+        animation.start(coordPointArray, 20000, animation.tween(d3.ease("linear")));
     };
 
     //binding actions
@@ -463,6 +498,13 @@ $( document ).ready(function() {
             loadPOIs();
         }
     });
+
+    $('#btn-findparking').on('click', function() {
+        //zoom to the selected marker
+
+        map.panTo(targetPoiLatLng, { animate: true, duration: 1.5} );
+        //map.setZoom(18, {animate: true, duration: 2.25});
+    })
 
     $('#btn-sms').on('click', function() {
         $('#thingspace-sms').modal('show');
