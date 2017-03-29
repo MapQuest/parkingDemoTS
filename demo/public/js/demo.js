@@ -13,6 +13,7 @@ var smstoken = null;
 var myLocation = null;
 var isAnimatingDrive = false;
 var routeEnd = null;
+var isFlyTo = false;
 
 $( document ).ready(function() {
 
@@ -48,6 +49,11 @@ $( document ).ready(function() {
 
             animateDriving();
         }
+
+        if (isFlyTo) {
+            map.panTo(targetPoiLatLng, { animate: true, duration: 1.5} );
+            isFlyTo = false;
+        }
     });
 
     /*
@@ -67,6 +73,41 @@ $( document ).ready(function() {
         }
     })
     */
+
+    document.addEventListener('animationEnd', function(e){
+        console.log(" --- wooot ---");
+        console.log(e);
+        isAnimatingDrive = false;
+
+        //remove the circle
+        var elem = document.getElementById("driveIco");
+        if (elem) elem.parentNode.removeChild(elem);
+
+        //move my current position to here
+        myLocation.setLatLng(routeEnd); // move this to the end of the route
+
+        //alert("Here we send SMS message about your spot");
+
+        var sendTo = $('#txt-cellphone').val();
+
+        $.ajax({
+            method: 'POST',
+            url: 'https://thingspace.verizon.com/api/messaging/v1/sms',
+            contentType: 'application/json; charset=UTF-8',
+            headers: {"Authorization": "Bearer " + smstoken},
+            data: JSON.stringify({
+                "recipient": sendTo,
+                "senderAddress": "900040002014",
+                "content": "You have arrvied at your parking spot - you have 2 hours" ,
+                "transactionID": "vz" + Date.now(),
+                "deliveryReport": true
+            })
+        }).done (function(data){
+            console.log(data);
+        })
+
+
+    });
     
 
     //create svg layer to do some additional animation and drawing on the MQ leaflet map
@@ -149,6 +190,11 @@ $( document ).ready(function() {
             {
                 console.log("need post id");
             }
+
+            var searchspot = new Object();
+            searchspot.key = feature.properties.POST_ID;
+            searchspot.name = feature.properties.POST_ID;
+
 
             var spot = L.circle(latlng, feature.properties.occupied ? 2 : 1, feature.properties.occupied ? occupiedOption : unoccupiedOption);
             //add this to an array for animation
@@ -241,16 +287,6 @@ $( document ).ready(function() {
 
         map.addLayer(mqRoute);
 
-
-
-        /*
-        //Let's create a line path to animate over
-        var linePath = g.selectAll(".lineConnect")
-            .data(mqRoute.route)
-            .enter()
-            .append("path")
-            .attr("class", "lineConnect");
-            */
 
 
     }
@@ -437,40 +473,7 @@ $( document ).ready(function() {
             .attr("id","driveIco")
             .style("fill", "#0000ff");
 
-        document.addEventListener('animationEnd', function(e){
-            console.log(" --- wooot ---");
-            console.log(e);
-            isAnimatingDrive = false;
 
-            //remove the circle
-            var elem = document.getElementById("driveIco");
-            if (elem) elem.parentNode.removeChild(elem);
-
-            //move my current position to here
-            myLocation.setLatLng(routeEnd); // move this to the end of the route
-
-            //alert("Here we send SMS message about your spot");
-
-            var sendTo = $('#txt-cellphone').val();
-
-            $.ajax({
-                method: 'POST',
-                url: 'https://thingspace.verizon.com/api/messaging/v1/sms',
-                contentType: 'application/json; charset=UTF-8',
-                headers: {"Authorization": "Bearer " + smstoken},
-                data: JSON.stringify({
-                    "recipient": sendTo,
-                    "senderAddress": "900040002014",
-                    "content": "You have arrvied at your parking spot - you have 2 hours" ,
-                    "transactionID": "vz" + Date.now(),
-                    "deliveryReport": true
-                })
-            }).done (function(data){
-                console.log(data);
-            })
-
-
-        })
 
         var animation = new PathAnimation(circle);
 
@@ -501,9 +504,9 @@ $( document ).ready(function() {
 
     $('#btn-findparking').on('click', function() {
         //zoom to the selected marker
+        isFlyTo = true;
+        map.setZoom(20);
 
-        map.panTo(targetPoiLatLng, { animate: true, duration: 1.5} );
-        //map.setZoom(18, {animate: true, duration: 2.25});
     })
 
     $('#btn-sms').on('click', function() {
@@ -525,6 +528,21 @@ $( document ).ready(function() {
     });
 
     $('#btn-drive').on('click', function() {
+
+        //get a new SMS token
+        //Get a new token from thinkspace to use for SMS messages
+        $.ajax({
+            method: 'POST',
+            url: 'https://thingspace.verizon.com/api/ts/v1/oauth2/token',
+            headers: {"Authorization" : "Basic VFkwX0tuaFZ0UndqeE5CWmkzZVdLcmtmNzFJYTpMTGREQ3NRNllFZlZaWXRGcVVTZXdBRkdHbUFh"},
+            data: { "grant_type" : "client_credentials"}
+
+
+        }).done(function(data){
+            console.log(data);
+            smstoken = data.access_token;
+        })
+
         animateDriving();
     })
 
