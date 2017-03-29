@@ -11,6 +11,7 @@ var targetPoiLatLng = null;
 var smstoken = null;
 
 var myLocation = null;
+var newLocation = null;
 var isAnimatingDrive = false;
 var routeEnd = null;
 var isFlyTo = false;
@@ -83,8 +84,12 @@ $( document ).ready(function() {
         var elem = document.getElementById("driveIco");
         if (elem) elem.parentNode.removeChild(elem);
 
+        //remove the target marker
+        map.removeLayer(newLocation);
+
         //move my current position to here
         myLocation.setLatLng(routeEnd); // move this to the end of the route
+
 
         //alert("Here we send SMS message about your spot");
 
@@ -117,18 +122,18 @@ $( document ).ready(function() {
 
     var unoccupiedOption = {
         className: "unoccupied",
-        fillColor: "rgb(220,220,220)",
+        fillColor: "rgb(50,220,50)",
         color: "rgb(0,0,0)",
-        weight: 1,
+        weight: 2,
         opacity: 1,
         fillOpacity: 0.8
     };
 
     var occupiedOption = {
         className: "occupied",
-        fillColor: "rgb(50,220,50)",
+        fillColor: "rgb(220,220,200)",
         color: "rgb(0,0,0)",
-        weight: 2,
+        weight: 1,
         opacity: 1,
         fillOpacity: 0.8
     };
@@ -196,7 +201,7 @@ $( document ).ready(function() {
             searchspot.name = feature.properties.POST_ID;
 
 
-            var spot = L.circle(latlng, feature.properties.occupied ? 2 : 1, feature.properties.occupied ? occupiedOption : unoccupiedOption);
+            var spot = L.circle(latlng, feature.properties.occupied ? 1 : 2, feature.properties.occupied ? occupiedOption : unoccupiedOption);
             //add this to an array for animation
             parkingSpotArray.push(spot);
 
@@ -506,6 +511,75 @@ $( document ).ready(function() {
         //zoom to the selected marker
         isFlyTo = true;
         map.setZoom(20);
+
+        var diffsize = 0.0005;
+
+        //Look around for parking spot
+        //targetPoiLatLng
+        console.log(targetPoiLatLng);
+        var searchbounds = [[targetPoiLatLng.lat - diffsize, targetPoiLatLng.lng - diffsize],[targetPoiLatLng.lat + diffsize, targetPoiLatLng.lng + diffsize]];
+
+        //var myrect = L.rectangle(searchbounds, {color: "#ff7777", weight: 2}).addTo(map);
+
+        // get  parking in that area
+        var goodspots = new Array();
+        $.each(parkingSpotArray, function(idx, spot){
+            if (!spot.feature.properties.occupied)
+            {
+                var spotlat = spot.feature.geometry.coordinates[1];
+                var spotlng = spot.feature.geometry.coordinates[0];
+                //console.log(spot.feature.properties.occupied + " --> " + spotlat + "," + spotlng );
+                if (
+                        (
+                        spotlat >= (targetPoiLatLng.lat - diffsize)
+                        && (spotlat <= (targetPoiLatLng.lat + diffsize))
+                        )
+                        &&
+                        (
+                            spotlng >= (targetPoiLatLng.lng - diffsize)
+                            && (spotlng <= (targetPoiLatLng.lng + diffsize))
+                        )
+                    ) {
+
+
+                    goodspots.push(spot);
+
+                }
+            }
+
+        });
+
+        /*
+        $.each(goodspots, function(idx, spot){
+            console.log(spot);
+        })
+        */
+
+        var selectedIndex = getRandomIntInclusive(0,goodspots.length - 1);
+
+        //switch target PoiLatLong to parking spot
+        var selectedSpot = goodspots[selectedIndex];
+
+        console.log("--- my spot ---");
+        console.log(selectedSpot);
+        targetPoiLatLng = selectedSpot._latlng;
+
+        //move my current position to here
+        //myLocation.setLatLng(selectedSpot._latlng); // move this to the end of the route
+
+
+        //Add Marker for starting Route Point
+        var blueMarker = L.AwesomeMarkers.icon({
+            prefix: 'fa',
+            icon: 'crosshairs',
+            markerColor: 'blue',
+            spin: true
+        });
+
+        newLocation = L.marker(selectedSpot._latlng, {icon: blueMarker, draggable: 'true'}).addTo(map);
+
+
+
 
     })
 
